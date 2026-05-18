@@ -42,6 +42,7 @@ async function run() {
     app.get("/trending-ideas", async (req, res) => {
       const cursor = ideasCollection.find().limit(6);
       const trendingIdeas = await cursor.toArray();
+
       if (!trendingIdeas) return res.json({});
       res.send(trendingIdeas);
     });
