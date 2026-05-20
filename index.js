@@ -44,6 +44,14 @@ async function run() {
       if (!idea) return res.json({});
       res.send(idea);
     });
+    // add new idea route
+    app.post("/ideas", async (req, res) => {
+      const newIdea = req.body;
+      console.log(newIdea);
+      const result = await ideasCollection.insertOne(newIdea);
+      if (!result.acknowledged) return res.json({});
+      res.send(result);
+    });
 
     // Trending Ideas route
     app.get("/trending-ideas", async (req, res) => {
