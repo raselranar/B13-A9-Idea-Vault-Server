@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 const client = new MongoClient(process.env.MONGO_DB_URI, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -36,6 +36,13 @@ async function run() {
       const allIdeas = await cursor.toArray();
       if (!allIdeas) return res.json({});
       res.send(allIdeas);
+    });
+    // idea by id route
+    app.get("/ideas/:id", async (req, res) => {
+      const { id } = req.params;
+      const idea = await ideasCollection.findOne({ _id: new ObjectId(id) });
+      if (!idea) return res.json({});
+      res.send(idea);
     });
 
     // Trending Ideas route
