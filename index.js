@@ -65,7 +65,7 @@ async function run() {
     // add comment route
     app.post("/ideas/:id/comments", async (req, res) => {
       const { id } = req.params;
-      console.log("Idea ID:", id);
+      // console.log("Idea ID:", id);
       const { user, text, date, commentId } = req.body;
 
       const result = await ideasCollection.updateOne(
