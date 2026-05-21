@@ -76,6 +76,44 @@ async function run() {
       if (!result.acknowledged) return res.json({});
       res.send(result);
     });
+    // update idea route
+    app.put("/ideas/:id", async (req, res) => {
+      const { id } = req.params;
+      const { title, description, category } = req.body;
+
+      const updateFields = {};
+      if (title) updateFields.title = title;
+      if (description) updateFields.description = description;
+      if (category) updateFields.category = category;
+
+      if (Object.keys(updateFields).length === 0) {
+        return res
+          .status(400)
+          .json({ error: "No fields provided for update." });
+      }
+
+      const result = await ideasCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updateFields },
+      );
+
+      if (!result.acknowledged || result.matchedCount === 0) {
+        return res.status(404).json({ error: "Idea not found." });
+      }
+
+      res.json(result);
+    });
+    // delete idea route
+    app.delete("/ideas/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await ideasCollection.deleteOne({ _id: new ObjectId(id) });
+
+      if (!result.acknowledged || result.deletedCount === 0) {
+        return res.status(404).json({ error: "Idea not found." });
+      }
+
+      res.json(result);
+    });
     // edit comment route
     app.put("/ideas/:ideaId/comments/:commentId", async (req, res) => {
       const { ideaId, commentId } = req.params;
@@ -101,6 +139,24 @@ async function run() {
       );
       if (!result.acknowledged) return res.json({});
       res.json(result);
+    });
+    // add my-ideas route
+    app.get("/my-ideas", async (req, res) => {
+      const { name } = req.query;
+      console.log("name", name);
+      const cursor = ideasCollection.find({ author: name });
+      const myIdeas = await cursor.toArray();
+      if (!myIdeas) return res.json({});
+      res.send(myIdeas);
+    });
+    // get commented ideas route
+    app.get("/commented-ideas", async (req, res) => {
+      const { name } = req.query;
+      console.log("name", name);
+      const cursor = ideasCollection.find({ "comments.user": name });
+      const commentedIdeas = await cursor.toArray();
+      if (!commentedIdeas) return res.json({});
+      res.send(commentedIdeas);
     });
   } finally {
     // Ensures that the client will close when you finish/error
