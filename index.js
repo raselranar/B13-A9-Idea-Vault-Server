@@ -76,6 +76,20 @@ async function run() {
       if (!result.acknowledged) return res.json({});
       res.send(result);
     });
+    // edit comment route
+    app.put("/ideas/:ideaId/comments/:commentId", async (req, res) => {
+      const { ideaId, commentId } = req.params;
+      const { text } = req.body;
+
+      const result = await ideasCollection.updateOne(
+        { _id: new ObjectId(ideaId) },
+        { $set: { "comments.$[ele].text": text } },
+        { arrayFilters: [{ "ele._id": new ObjectId(commentId) }] },
+      );
+
+      if (!result.acknowledged) return res.json({});
+      res.send(result);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
