@@ -26,7 +26,7 @@ async function run() {
     const database = client.db("IDEAVAULT");
     const ideasCollection = database.collection("ideas");
     // Send a ping to confirm a successful connection
-    await database.command({ ping: 1 });
+    // await database.command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
