@@ -22,7 +22,7 @@ app.get("/", (req, res) => res.json({ message: "server is running" }));
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     const database = client.db("IDEAVAULT");
     const ideasCollection = database.collection("ideas");
     // Send a ping to confirm a successful connection
@@ -60,6 +60,21 @@ async function run() {
 
       if (!trendingIdeas) return res.json({});
       res.send(trendingIdeas);
+    });
+
+    // add comment route
+    app.post("/ideas/:id/comments", async (req, res) => {
+      const { id } = req.params;
+      console.log("Idea ID:", id);
+      const { user, text, date } = req.body;
+
+      const result = await ideasCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $push: { comments: { user, text, date } } },
+      );
+
+      if (!result.acknowledged) return res.json({});
+      res.send(result);
     });
   } finally {
     // Ensures that the client will close when you finish/error
