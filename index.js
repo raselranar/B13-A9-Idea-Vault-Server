@@ -90,6 +90,18 @@ async function run() {
       if (!result.acknowledged) return res.json({});
       res.json(result);
     });
+    // delete comment route
+    app.delete("/ideas/:ideaId/comments/:commentId", async (req, res) => {
+      const { ideaId, commentId } = req.params;
+
+      const commentIdValue = Number(commentId);
+      const result = await ideasCollection.updateOne(
+        { _id: new ObjectId(ideaId) },
+        { $pull: { comments: { commentId: commentIdValue } } },
+      );
+      if (!result.acknowledged) return res.json({});
+      res.json(result);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
