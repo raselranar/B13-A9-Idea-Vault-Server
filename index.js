@@ -66,11 +66,11 @@ async function run() {
     app.post("/ideas/:id/comments", async (req, res) => {
       const { id } = req.params;
       console.log("Idea ID:", id);
-      const { user, text, date } = req.body;
+      const { user, text, date, commentId } = req.body;
 
       const result = await ideasCollection.updateOne(
         { _id: new ObjectId(id) },
-        { $push: { comments: { user, text, date } } },
+        { $push: { comments: { user, text, date, commentId } } },
       );
 
       if (!result.acknowledged) return res.json({});
@@ -81,14 +81,14 @@ async function run() {
       const { ideaId, commentId } = req.params;
       const { text } = req.body;
 
-      const result = await ideasCollection.updateOne(
-        { _id: new ObjectId(ideaId) },
-        { $set: { "comments.$[ele].text": text } },
-        { arrayFilters: [{ "ele._id": new ObjectId(commentId) }] },
-      );
+      const commentIdValue = Number(commentId);
 
+      const result = await ideasCollection.updateOne(
+        { _id: new ObjectId(ideaId), "comments.commentId": commentIdValue },
+        { $set: { "comments.$.text": text } },
+      );
       if (!result.acknowledged) return res.json({});
-      res.send(result);
+      res.json(result);
     });
   } finally {
     // Ensures that the client will close when you finish/error
