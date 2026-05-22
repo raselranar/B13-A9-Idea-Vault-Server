@@ -66,11 +66,11 @@ async function run() {
     app.post("/ideas/:id/comments", async (req, res) => {
       const { id } = req.params;
       // console.log("Idea ID:", id);
-      const { user, text, date, commentId } = req.body;
+      const { user, text, date, commentId, userId } = req.body;
 
       const result = await ideasCollection.updateOne(
         { _id: new ObjectId(id) },
-        { $push: { comments: { user, text, date, commentId } } },
+        { $push: { comments: { user, text, date, commentId, userId } } },
       );
 
       if (!result.acknowledged) return res.json({});
@@ -151,9 +151,9 @@ async function run() {
     });
     // get commented ideas route
     app.get("/commented-ideas", async (req, res) => {
-      const { name } = req.query;
-      console.log("name", name);
-      const cursor = ideasCollection.find({ "comments.user": name });
+      const { id } = req.query;
+      console.log("id", id);
+      const cursor = ideasCollection.find({ "comments.userId": id });
       const commentedIdeas = await cursor.toArray();
       if (!commentedIdeas) return res.json({});
       res.send(commentedIdeas);
