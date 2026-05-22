@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 const client = new MongoClient(process.env.MONGO_DB_URI, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -18,6 +19,31 @@ app.use(cors());
 
 app.get("/", (req, res) => res.json({ message: "server is running" }));
 //
+
+// verify token
+const verifyToken = async (req, res, next) => {
+  const authHeader = req?.headers?.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const JWKS = createRemoteJWKSet(
+      new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+    );
+    console.log({ jwks: JWKS, token: token });
+    const { payload } = await jwtVerify(token, JWKS);
+    console.log("payload", payload);
+    next();
+  } catch (error) {
+    console.error("Token validation failed:", error);
+    throw error;
+  }
+};
 
 async function run() {
   try {
@@ -37,15 +63,15 @@ async function run() {
       if (!allIdeas) return res.json({});
       res.send(allIdeas);
     });
-    // idea by id route
-    app.get("/ideas/:id", async (req, res) => {
+    // get idea by id
+    app.get("/ideas/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const idea = await ideasCollection.findOne({ _id: new ObjectId(id) });
       if (!idea) return res.json({});
       res.send(idea);
     });
     // add new idea route
-    app.post("/ideas", async (req, res) => {
+    app.post("/ideas", verifyToken, async (req, res) => {
       const newIdea = req.body;
       console.log(newIdea);
       const result = await ideasCollection.insertOne(newIdea);
@@ -63,7 +89,7 @@ async function run() {
     });
 
     // add comment route
-    app.post("/ideas/:id/comments", async (req, res) => {
+    app.post("/ideas/:id/comments", verifyToken, async (req, res) => {
       const { id } = req.params;
       // console.log("Idea ID:", id);
       const { user, text, date, commentId, userId } = req.body;
@@ -77,7 +103,7 @@ async function run() {
       res.send(result);
     });
     // update idea route
-    app.put("/ideas/:id", async (req, res) => {
+    app.put("/ideas/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const { title, description, category } = req.body;
 
@@ -104,7 +130,7 @@ async function run() {
       res.json(result);
     });
     // delete idea route
-    app.delete("/ideas/:id", async (req, res) => {
+    app.delete("/ideas/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const result = await ideasCollection.deleteOne({ _id: new ObjectId(id) });
 
@@ -115,33 +141,41 @@ async function run() {
       res.json(result);
     });
     // edit comment route
-    app.put("/ideas/:ideaId/comments/:commentId", async (req, res) => {
-      const { ideaId, commentId } = req.params;
-      const { text } = req.body;
+    app.put(
+      "/ideas/:ideaId/comments/:commentId",
+      verifyToken,
+      async (req, res) => {
+        const { ideaId, commentId } = req.params;
+        const { text } = req.body;
 
-      const commentIdValue = Number(commentId);
+        const commentIdValue = Number(commentId);
 
-      const result = await ideasCollection.updateOne(
-        { _id: new ObjectId(ideaId), "comments.commentId": commentIdValue },
-        { $set: { "comments.$.text": text } },
-      );
-      if (!result.acknowledged) return res.json({});
-      res.json(result);
-    });
+        const result = await ideasCollection.updateOne(
+          { _id: new ObjectId(ideaId), "comments.commentId": commentIdValue },
+          { $set: { "comments.$.text": text } },
+        );
+        if (!result.acknowledged) return res.json({});
+        res.json(result);
+      },
+    );
     // delete comment route
-    app.delete("/ideas/:ideaId/comments/:commentId", async (req, res) => {
-      const { ideaId, commentId } = req.params;
+    app.delete(
+      "/ideas/:ideaId/comments/:commentId",
+      verifyToken,
+      async (req, res) => {
+        const { ideaId, commentId } = req.params;
 
-      const commentIdValue = Number(commentId);
-      const result = await ideasCollection.updateOne(
-        { _id: new ObjectId(ideaId) },
-        { $pull: { comments: { commentId: commentIdValue } } },
-      );
-      if (!result.acknowledged) return res.json({});
-      res.json(result);
-    });
+        const commentIdValue = Number(commentId);
+        const result = await ideasCollection.updateOne(
+          { _id: new ObjectId(ideaId) },
+          { $pull: { comments: { commentId: commentIdValue } } },
+        );
+        if (!result.acknowledged) return res.json({});
+        res.json(result);
+      },
+    );
     // add my-ideas route
-    app.get("/my-ideas", async (req, res) => {
+    app.get("/my-ideas", verifyToken, async (req, res) => {
       const { name } = req.query;
       console.log("name", name);
       const cursor = ideasCollection.find({ author: name });
@@ -150,7 +184,7 @@ async function run() {
       res.send(myIdeas);
     });
     // get commented ideas route
-    app.get("/commented-ideas", async (req, res) => {
+    app.get("/commented-ideas", verifyToken, async (req, res) => {
       const { id } = req.query;
       console.log("id", id);
       const cursor = ideasCollection.find({ "comments.userId": id });
