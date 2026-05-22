@@ -158,6 +158,24 @@ async function run() {
       if (!commentedIdeas) return res.json({});
       res.send(commentedIdeas);
     });
+    // search ideas route
+    app.get("/search-ideas", async (req, res) => {
+      const { search } = req.query;
+      const cursor = ideasCollection.find({
+        $or: [{ title: { $regex: search, $options: "i" } }],
+      });
+      const searchResults = await cursor.toArray();
+      if (!searchResults) return res.json({});
+      res.send(searchResults);
+    });
+    // filter ideas by category route
+    app.get("/filter-ideas", async (req, res) => {
+      const { category } = req.query;
+      const cursor = ideasCollection.find({ category });
+      const filteredIdeas = await cursor.toArray();
+      if (!filteredIdeas) return res.json({});
+      res.send(filteredIdeas);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
