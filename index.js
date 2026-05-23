@@ -237,6 +237,26 @@ async function run() {
       if (!filteredIdeas) return res.json({});
       res.send(filteredIdeas);
     });
+
+    // index.js-এ এই route add করো temporarily
+    app.get("/debug-env", async (req, res) => {
+      const clientUrl = process.env.CLIENT_URL;
+      let jwksStatus = null;
+      let jwksError = null;
+
+      try {
+        const response = await fetch(`${clientUrl}/api/auth/jwks`);
+        jwksStatus = response.status;
+      } catch (e) {
+        jwksError = e.message;
+      }
+
+      res.json({
+        CLIENT_URL: clientUrl ?? "❌ NOT SET",
+        JWKS_status: jwksStatus, // এটা 200 হওয়া লাগবে
+        JWKS_error: jwksError,
+      });
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
