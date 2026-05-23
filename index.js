@@ -20,28 +20,55 @@ app.use(cors());
 app.get("/", (req, res) => res.json({ message: "server is running" }));
 //
 
-// verify token
+// // verify token
+// const verifyToken = async (req, res, next) => {
+//   const authHeader = req?.headers?.authorization;
+//   if (!authHeader) {
+//     return res.status(401).json({ error: "Unauthorized" });
+//   }
+//   const token = authHeader.split(" ")[1];
+//   if (!token) {
+//     return res.status(401).json({ error: "Unauthorized" });
+//   }
+
+//   try {
+//     const JWKS = createRemoteJWKSet(
+//       new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+//     );
+//     console.log({ jwks: JWKS, token: token });
+//     const { payload } = await jwtVerify(token, JWKS);
+//     console.log("payload", payload);
+//     next();
+//   } catch (error) {
+//     console.error("Token validation failed:", error);
+//     throw error;
+//   }
+// };
+
+// new
+
+const JWKS = createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+);
+
 const verifyToken = async (req, res, next) => {
   const authHeader = req?.headers?.authorization;
   if (!authHeader) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+
   const token = authHeader.split(" ")[1];
   if (!token) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
-    const JWKS = createRemoteJWKSet(
-      new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
-    );
-    console.log({ jwks: JWKS, token: token });
     const { payload } = await jwtVerify(token, JWKS);
-    console.log("payload", payload);
+    req.user = payload;
     next();
   } catch (error) {
     console.error("Token validation failed:", error);
-    throw error;
+    return res.status(401).json({ error: "Invalid or expired token" }); // ✅ throw না করে response দাও
   }
 };
 
